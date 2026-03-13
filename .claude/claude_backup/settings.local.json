@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd C:/Users/freed/stonefield-fund-platform && mv temp_claude /tmp/temp_claude_backup && mv docs /tmp/docs_backup && npx create-next-app@14 . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack --use-npm 2>&1 | tail -10)",
+      "Bash(cd C:/Users/freed/stonefield-fund-platform && mv .claude /tmp/claude_backup && npx create-next-app@14 . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-turbopack --use-npm 2>&1 | tail -15)"
+    ]
+  }
+}
