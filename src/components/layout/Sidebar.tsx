@@ -26,8 +26,8 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Investors', href: '/dashboard/investors', icon: UsersIcon },
       { name: 'Accounts', href: '/dashboard/accounts', icon: BriefcaseIcon },
-      { name: 'Ledger', href: '/dashboard/ledger', icon: BookIcon, comingSoon: true },
-      { name: 'Transactions', href: '/dashboard/transactions', icon: ArrowsIcon, comingSoon: true },
+      { name: 'Ledger', href: '/dashboard/ledger', icon: BookIcon },
+      { name: 'Transactions', href: '/dashboard/transactions', icon: ArrowsIcon },
     ],
   },
   {

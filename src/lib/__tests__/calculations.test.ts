@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { createJournalLines, validateJournalBalance } from '../journal-entries'
 import {
   calculateInterest,
   calculateMultiTranche,
@@ -399,5 +400,118 @@ describe('Edge Cases', () => {
       daysInMonth: 30,
     })
     expect(result).toBe(0)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────
+// Double-entry GL Engine (journal-entries.ts)
+// ─────────────────────────────────────────────────────────────
+
+describe('Double-entry GL Engine', () => {
+  it('deposit: Dr. Cash / Cr. Investor Capital', () => {
+    const lines = createJournalLines('deposit', 100_000)
+    expect(lines).toHaveLength(2)
+    expect(lines[0]).toEqual({ accountCode: '1000', accountName: 'Cash', debit: 100_000, credit: 0 })
+    expect(lines[1]).toEqual({ accountCode: '3000', accountName: 'Investor Capital', debit: 0, credit: 100_000 })
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('redemption: Dr. Investor Capital / Cr. Cash', () => {
+    const lines = createJournalLines('redemption', 50_000)
+    expect(lines).toHaveLength(2)
+    expect(lines[0].accountCode).toBe('3000')
+    expect(lines[0].debit).toBe(50_000)
+    expect(lines[1].accountCode).toBe('1000')
+    expect(lines[1].credit).toBe(50_000)
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('interest accrual: Dr. Interest Expense / Cr. Interest Payable', () => {
+    const lines = createJournalLines('interest_accrual', 833.33)
+    expect(lines[0]).toEqual({ accountCode: '5000', accountName: 'Interest Expense', debit: 833.33, credit: 0 })
+    expect(lines[1]).toEqual({ accountCode: '2000', accountName: 'Interest Payable', debit: 0, credit: 833.33 })
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('interest payout (PAD): Dr. Interest Payable / Cr. Cash', () => {
+    const lines = createJournalLines('interest_payout', 833.33)
+    expect(lines[0].accountCode).toBe('2000')
+    expect(lines[0].debit).toBe(833.33)
+    expect(lines[1].accountCode).toBe('1000')
+    expect(lines[1].credit).toBe(833.33)
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('DRIP conversion: Dr. Interest Payable / Cr. Investor Capital', () => {
+    const lines = createJournalLines('drip_conversion', 467.50)
+    expect(lines[0].accountCode).toBe('2000')
+    expect(lines[1].accountCode).toBe('3000')
+    expect(lines[1].credit).toBe(467.50)
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('account transfer: Dr. Source Capital / Cr. Dest Capital', () => {
+    const lines = createJournalLines('account_transfer', 25_000)
+    expect(lines).toHaveLength(2)
+    expect(lines[0].debit).toBe(25_000)
+    expect(lines[1].credit).toBe(25_000)
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('share class transfer: internal reclassification', () => {
+    const lines = createJournalLines('share_class_transfer', 100_000)
+    expect(lines).toHaveLength(2)
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('revenue entry: Dr. Cash / Cr. Interest Revenue', () => {
+    const lines = createJournalLines('revenue', 5_000)
+    expect(lines[0]).toEqual({ accountCode: '1000', accountName: 'Cash', debit: 5_000, credit: 0 })
+    expect(lines[1]).toEqual({ accountCode: '4000', accountName: 'Interest Revenue', debit: 0, credit: 5_000 })
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('expense entry: Dr. Operating Expenses / Cr. Cash', () => {
+    const lines = createJournalLines('expense', 1_200)
+    expect(lines[0]).toEqual({ accountCode: '5100', accountName: 'Operating Expenses', debit: 1_200, credit: 0 })
+    expect(lines[1]).toEqual({ accountCode: '1000', accountName: 'Cash', debit: 0, credit: 1_200 })
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('manual adjustment: Dr. Retained Earnings / Cr. Cash', () => {
+    const lines = createJournalLines('manual_adjustment', 500)
+    expect(lines).toHaveLength(2)
+    expect(lines[0].accountCode).toBe('3100')
+    expect(lines[1].accountCode).toBe('1000')
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('all 10 transaction types produce balanced journal entries', () => {
+    const types = [
+      'deposit', 'redemption', 'interest_accrual', 'interest_payout',
+      'drip_conversion', 'account_transfer', 'share_class_transfer',
+      'revenue', 'expense', 'manual_adjustment',
+    ] as const
+
+    for (const type of types) {
+      const lines = createJournalLines(type, 1000)
+      expect(lines.length).toBeGreaterThanOrEqual(2)
+      expect(validateJournalBalance(lines)).toBe(true)
+    }
+  })
+
+  it('negative amount is treated as absolute value', () => {
+    const lines = createJournalLines('deposit', -50_000)
+    expect(lines[0].debit).toBe(50_000)
+    expect(lines[1].credit).toBe(50_000)
+    expect(validateJournalBalance(lines)).toBe(true)
+  })
+
+  it('validateJournalBalance detects imbalanced entries', () => {
+    const unbalanced = [
+      { accountCode: '1000', accountName: 'Cash', debit: 100, credit: 0 },
+      { accountCode: '3000', accountName: 'Capital', debit: 0, credit: 50 },
+    ]
+    expect(validateJournalBalance(unbalanced)).toBe(false)
   })
 })

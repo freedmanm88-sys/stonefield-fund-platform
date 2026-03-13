@@ -135,7 +135,7 @@ export function diffCalculationRuns(
   previous: Map<string, number>,
   current: Map<string, number>,
 ): CalculationDiff[] {
-  const allAccountIds = new Set([...previous.keys(), ...current.keys()])
+  const allAccountIds = Array.from(new Set([...Array.from(previous.keys()), ...Array.from(current.keys())]))
   const diffs: CalculationDiff[] = []
 
   for (const accountId of allAccountIds) {
